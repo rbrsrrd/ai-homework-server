@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة حل الواجبات الذكية</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
+        select, button { padding: 12px 20px; font-size: 16px; margin: 10px; border-radius: 8px; border: none; cursor: pointer; }
+        select { background: #333; color: #fff; }
+        button { background: #00bcd4; color: #000; font-weight: bold; }
+        video { width: 100%; max-width: 400px; border-radius: 10px; border: 2px solid #444; margin-top: 10px; }
+        #result { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-top: 20px; text-align: left; direction: ltr; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <h2>🤖 نظام حل الأسئلة الذكي</h2>
+
+    <div>
+        <label>اختر المادة:</label><br>
+        <select id="subjectSelect">
+            <option value="إنجليزي">1. إنجليزي</option>
+            <option value="فيزياء">2. فيزياء</option>
+            <option value="تاريخ">3. تاريخ</option>
+        </select>
+    </div>
+
+    <div>
+        <video id="video" autoplay playsinline></video><br>
+        <button onclick="captureAndSend()">📸 تصوير وإرسال وحل</button>
+    </div>
+
+    <h3 id="status"></h3>
+    <div id="result">النتائج ستظهر هنا وتنتقل للوحة ESP32...</div>
+
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        // مفتاح Gemini الذي أضفته
+        const GEMINI_API_KEY = "AQ.Ab8RN6K8xNJSiOGViR7uWYUfnXtl98N-PbB7lGavpP9HI4hw2Q";
+
+        const video = document.getElementById('video');
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => { alert("تعذر فتح الكاميرا: " + err); });
+
+        async function captureAndSend() {
+            const subject = document.getElementById('subjectSelect').value;
+            const status = document.getElementById('status');
+            const resultDiv = document.getElementById('result');
+            
+            status.innerText = "جاري التقاط الصورة والتحليل عبر Gemini...";
+            resultDiv.innerText = "";
+
+            const canvas = document.getElementById('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const imageBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
+            let promptText = `قم بتحليل الأسئلة في الصورة لمادة ${subject}. إذا كانت الأسئلة خيارات، اعطني رقم السؤال مع الحرف الصحيح (مثلاً: 1: A). وإذا كانت بدون خيارات، اعطني رقم السؤال مع الإجابة المختصرة جداً. نسّق الإجابة بأسطر مرتبة.`;
+
+            try {
+                // الاتصال المباشر بـ Gemini API من المتصفح
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inline_data: { mime_type: "image/jpeg", data: imageBase64 } }
+                            ]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                const finalAnswer = data.candidates[0].content.parts[0].text;
+
+                status.innerText = "تم الحل بنجاح وجاري إرساله للوحة ESP32 🎉";
+                resultDiv.innerText = finalAnswer;
+
+                // إرسال الإجابة للسيرفر عشان لوحة الـ ESP32 تسحبها وتظهرها عندها
+                await fetch('/update-answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answer: finalAnswer })
+                });
+
+            } catch (error) {
+                status.innerText = "حدث خطأ أثناء التحليل.";
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

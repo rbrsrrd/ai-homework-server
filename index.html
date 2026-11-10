@@ -37,8 +37,8 @@
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
-        // مفتاح Gemini الذي أضفته
-        const GEMINI_API_KEY = "AQ.Ab8RN6K8xNJSiOGViR7uWYUfnXtl98N-PbB7lGavpP9HI4hw2Q";
+        // مفتاح Gemini الجديد المحدث بالكامل
+        const GEMINI_API_KEY = "AQ.Ab8RN6I0ohKlBTC5W1HwGGqRV_UvtkMh2q0jXOE8NVAPaJvylA";
 
         const video = document.getElementById('video');
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
@@ -78,6 +78,11 @@
                 });
 
                 const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message);
+                }
+
                 const finalAnswer = data.candidates[0].content.parts[0].text;
 
                 status.innerText = "تم الحل بنجاح وجاري إرساله للوحة ESP32 🎉";
@@ -91,7 +96,7 @@
                 });
 
             } catch (error) {
-                status.innerText = "حدث خطأ أثناء التحليل.";
+                status.innerText = "حدث خطأ أثناء التحليل: " + error.message;
                 console.error(error);
             }
         }

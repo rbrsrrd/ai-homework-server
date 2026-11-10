@@ -11,9 +11,8 @@ app.use(express.static(__dirname));
 let latestAnswerForESP32 = "مساعد الواجبات جاهز\nقم بتصوير الواجب من الموقع.";
 
 // مفاتيح الذكاء الاصطناعي الخاصة بك
-const GEMINI_API_KEY = "AQ.Ab8RN6K8xNJSiOGViR7uWYUfnXtl98N-PbB7lGavpP9HI4hw2Q";
-const OPENAI_API_KEY = "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";
-
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 app.post('/analyze', async (req, res) => {
     const { imageBase64, subject } = req.body; 
     let promptText = `قم بتحليل الأسئلة في الصورة لمادة ${subject}. إذا كانت الأسئلة خيارات، اعطني رقم السؤال مع الحرف الصحيح (مثلاً: 1: A). وإذا كانت بدون خيارات، اعطني رقم السؤال مع الإجابة المختصرة جداً. نسّق الإجابة بأسطر مرتبة.`;

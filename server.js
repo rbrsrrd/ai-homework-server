@@ -1,7 +1,14 @@
 const express = require('express');
 const axios = require('axios');
+const path = require('path');
 const app = express();
 app.use(express.json({ limit: '10mb' }));
+
+// جعل السيرفر يخدم ملفات الموقع (مثل index.html) مباشرة للزوار
+app.use(express.static(__dirname));
+
+// متغير لتخزين أحدث إجابة لكي تستطيع لوحة الـ ESP32 سحبها وعرضها
+let latestAnswerForESP32 = "مساعد الواجبات جاهز\nقم بتصوير الواجب من الموقع.";
 
 // مفاتيح الذكاء الاصطناعي الخاصة بك
 const GEMINI_API_KEY = "AQ.Ab8RN6K8xNJSiOGViR7uWYUfnXtl98N-PbB7lGavpP9HI4hw2Q";
@@ -70,11 +77,19 @@ app.post('/analyze', async (req, res) => {
         }
     }
 
+    // حفظ الإجابة لتستطيع لوحة الـ ESP32 جلبها وعرضها
+    latestAnswerForESP32 = finalAnswer;
+
     res.json({
         success: true,
         modelUsed: usedModel,
         answers: finalAnswer
     });
+});
+
+// مسار جديد خاص بالـ ESP32 لجلب أحدث إجابة تم حلها
+app.get('/latest-answer', (req, res) => {
+    res.json({ answer: latestAnswerForESP32 });
 });
 
 const PORT = process.env.PORT || 3000;
